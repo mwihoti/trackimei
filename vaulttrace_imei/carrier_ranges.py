@@ -52,22 +52,21 @@ def infer_carrier(tac: str, region: Optional[str] = None) -> str:
 
     # Normalize region for case-insensitive matching
     region = region.upper() if region else None
+    if region in ("UNKNOWN", "GLOBAL"):
+        region = None
 
-    # Sort rules so longer prefixes match first
-    sorted_rules = sorted(
-        CARRIER_RULES,
-        key=lambda r: max(len(p) for p in r.get("tac_prefixes", [])),
-        reverse=True
-    )
+    # Compare prefixes globally so the longest match always wins
+    candidates = [
+        (prefix, rule["name"])
+        for rule in CARRIER_RULES
+        if not region or region in [r.upper() for r in rule.get("regions", [])]
+        for prefix in rule.get("tac_prefixes", [])
+    ]
+    candidates.sort(key=lambda candidate: len(candidate[0]), reverse=True)
 
-    for rule in sorted_rules:
-        # If region is provided, skip rules that don't match
-        if region and region not in [r.upper() for r in rule.get("regions", [])]:
-            continue
-
-        for prefix in rule.get("tac_prefixes", []):
-            if tac.startswith(prefix):
-                return rule["name"]
+    for prefix, name in candidates:
+        if tac.startswith(prefix):
+            return name
 
     return "Unknown"
 
