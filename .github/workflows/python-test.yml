@@ -21,7 +21,8 @@ jobs:
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Run TAC lookup test
+      - name: Run decode smoke test
         run: |
-          echo "Running TAC lookup test..."
-         python vaulttrace_imei/basic_tac_profile.py 3569380356438099
+          echo "Running decode smoke test..."
+          python -m vaulttrace_imei 359103740000004 --json
+          python -m vaulttrace_imei 35693803 --json
