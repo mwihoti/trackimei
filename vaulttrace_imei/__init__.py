@@ -3,7 +3,7 @@ IMEI/TAC Analysis Toolkit
 Offline-first IMEI decoding, TAC profiling, and carrier inference.
 """
 
-from .cli import decode_imei, main as _cli_main
+from .cli import decode_imei, decode_tac, main as _cli_main
 from .tac_lookup import basic_tac_profile
 from .carrier_ranges import infer_carrier
 
@@ -13,6 +13,7 @@ __license__ = "MIT"
 
 __all__ = (
     "decode_imei",
+    "decode_tac",
     "basic_tac_profile",
     "infer_carrier",
     "__version__",
