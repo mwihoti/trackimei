@@ -6,6 +6,7 @@ setup(
     description="VaultTrace IMEI TAC decoder and carrier inference",
     author="Nicole / The OSINT Vault",
     packages=find_packages(),
+    install_requires=["phonenumbers>=8.13"],
     entry_points={
         "console_scripts": [
             "vaulttrace-imei=vaulttrace_imei.cli:main",
