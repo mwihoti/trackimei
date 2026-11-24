@@ -186,6 +186,36 @@ python scripts/adb-collector.py --url https://127.0.0.1:8765 --token ... --imei 
 The host-side script shells out to `adb shell dumpsys telephony.registry` and
 `cmd wifi list-scan-results`. Nothing is installed on the phone.
 
+### Theft and recovery
+
+Register the device while you still have it:
+
+```bash
+python -m vaulttrace_imei 354265802012527 --register \
+  --owner "Daniel" --serial SN123 --purchase-ref RCPT-9 \
+  --carrier Safaricom --msisdn 0712345678
+```
+
+That prints a stable reference such as `VT-4405160D`. Keep it with the receipt.
+
+If it is stolen, move the case forward and generate evidence as you go:
+
+```bash
+python -m vaulttrace_imei 354265802012527 --advance reported --note "OB 12/24"
+python -m vaulttrace_imei 354265802012527 --theft-report --out theft.md
+python -m vaulttrace_imei 354265802012527 --advance sim-blocked
+python -m vaulttrace_imei 354265802012527 --advance imei-blocked
+python -m vaulttrace_imei 354265802012527 --theft-status
+```
+
+The report contains the decoded device, owner/purchase fields, the event
+timeline, the remaining checklist, and any recorded observations. States only
+move forward: `owned → reported → sim-blocked → imei-blocked → recovered`.
+
+What it does not do: actually block the IMEI, or locate a powered-off phone.
+The carrier/EIR applies the block, and the report is what you take to the
+carrier, police and insurer.
+
 ## Library
 
 ```python

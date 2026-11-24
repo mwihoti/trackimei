@@ -4,3 +4,4 @@ vaulttrace_imei/tac_full.csv
 __pycache__/
 *.pyc
 device.png
+theft-*.md
