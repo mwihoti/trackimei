@@ -12,6 +12,7 @@ from .locate import LocateError, locate as locate_device
 from .phone import NumberError, parse_number
 from .tac_db import TAC_DB
 from .tac_lookup import basic_tac_profile as remote_tac_profile
+from . import theft
 
 
 def _parse_cell(spec: str, radio: str) -> Dict[str, Any]:
@@ -302,6 +303,25 @@ def main():
     parser.add_argument("--cert", help="TLS certificate file for --serve.")
     parser.add_argument("--key", help="TLS private key file for --serve.")
     parser.add_argument(
+        "--register", action="store_true", help="Register this IMEI as your device."
+    )
+    parser.add_argument("--owner", help="Owner name for the device record.")
+    parser.add_argument("--serial", help="Device serial number, if printed.")
+    parser.add_argument("--carrier", help="Carrier to contact for blocking.")
+    parser.add_argument("--purchase-ref", help="Receipt or purchase reference.")
+    parser.add_argument("--notes", help="Free-form notes for the device record.")
+    parser.add_argument(
+        "--theft-report", action="store_true", help="Write a theft evidence report."
+    )
+    parser.add_argument("--out", help="Output path for --theft-report.")
+    parser.add_argument(
+        "--theft-status", action="store_true", help="Show theft recovery state."
+    )
+    parser.add_argument(
+        "--advance", choices=theft.STATES, help="Advance the theft state machine."
+    )
+    parser.add_argument("--note", help="Note for --advance.")
+    parser.add_argument(
         "--mapbox-token",
         help="Mapbox access token (defaults to MAPBOX_TOKEN).",
     )
@@ -343,6 +363,51 @@ def main():
             line_block = parse_number(args.msisdn, region=args.region)
         except NumberError as exc:
             parser.error(str(exc))
+
+    theft_mode = (
+        args.register or args.theft_report or args.theft_status or args.advance
+    )
+    if theft_mode:
+        if len(args.identifiers) != 1:
+            parser.error("Theft commands take exactly one IMEI.")
+        imei = args.identifiers[0]
+        if not validate_imei(imei):
+            parser.error("Invalid IMEI (Luhn or length failed).")
+        profile = decode_imei(imei, offline=args.offline)
+        try:
+            if args.register:
+                record = theft.register(
+                    imei,
+                    owner=args.owner,
+                    serial=args.serial,
+                    purchase_ref=args.purchase_ref,
+                    carrier=args.carrier,
+                    msisdn=line_block["e164"] if line_block else None,
+                    notes=args.notes,
+                )
+                print(f"Registered {profile['manufacturer']} {profile['model']}")
+                print(f"IMEI: {imei}")
+                print(f"Reference: {theft.reference(record)}")
+                print("Store this reference with your purchase proof.")
+            if args.advance:
+                theft.advance(imei, args.advance, args.note)
+            if args.theft_status:
+                record = theft.load(imei)
+                if record is None:
+                    raise theft.TheftError("Device is not registered.")
+                print(theft.status_text(record))
+            if args.theft_report:
+                record = theft.load(imei)
+                if record is None:
+                    raise theft.TheftError("Device is not registered.")
+                out = args.out or f"theft-{theft.reference(record)}.md"
+                with open(out, "w", encoding="utf-8") as handle:
+                    handle.write(theft.report(imei, profile))
+                print(f"Report written: {out}")
+        except theft.TheftError as exc:
+            print(f"Theft error: {exc}", file=sys.stderr)
+            sys.exit(1)
+        return
 
     if args.locate and (args.lat is not None or args.lon is not None):
         parser.error("--locate cannot be combined with --lat/--lon.")
